@@ -7,6 +7,14 @@
         {
             "owner": "shadow1ng",
             "repo": "fscan"
+        },
+        {
+            "owner": "sqlmapproject",
+            "repo": "sqlmap"
+        },
+        {
+            "owner": "XTLS",
+            "repo": "Xray-core"
         }
     ],
     "base_dir": "downloads",

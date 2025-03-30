@@ -6,6 +6,8 @@ import shutil
 from pathlib import Path
 import logging
 from concurrent.futures import ThreadPoolExecutor
+import sys
+import re
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -180,23 +182,88 @@ class GithubReleaseUpdater:
                 owner = repo_info["owner"]
                 repo = repo_info["repo"]
                 executor.submit(self.update_repository, owner, repo)
+    
+    def parse_github_url(self, url):
+        """从GitHub URL中解析出所有者和仓库名"""
+        # 匹配格式: https://github.com/owner/repo 或 github.com/owner/repo
+        pattern = r'(?:https?://)?(?:www\.)?github\.com/([^/]+)/([^/]+)'
+        match = re.match(pattern, url)
+        if match:
+            return match.group(1), match.group(2)
+        return None, None
+
+def print_usage():
+    """打印使用说明"""
+    print("使用方法:")
+    print("  python main.py add <GitHub仓库URL>    - 添加GitHub仓库")
+    print("  python main.py remove <GitHub仓库URL> - 移除GitHub仓库")
+    print("  python main.py update                 - 更新所有仓库")
+    print("  python main.py proxy <代理前缀>        - 设置代理前缀")
+    print("  python main.py list                   - 列出所有仓库")
+    print("  python main.py help                   - 显示帮助信息")
+    print("\n示例:")
+    print("  python main.py add https://github.com/sqlmapproject/sqlmap")
+    print("  python main.py proxy https://g.bravexist.cn/")
 
 if __name__ == "__main__":
     updater = GithubReleaseUpdater()
     
+    # 命令行参数处理
+    if len(sys.argv) > 1:
+        command = sys.argv[1].lower()
+        
+        if command == "add" and len(sys.argv) > 2:
+            github_url = sys.argv[2]
+            owner, repo = updater.parse_github_url(github_url)
+            if owner and repo:
+                updater.add_repository(owner, repo)
+            else:
+                print(f"无效的GitHub仓库URL: {github_url}")
+                print("格式应为: https://github.com/owner/repo")
+        
+        elif command == "remove" and len(sys.argv) > 2:
+            github_url = sys.argv[2]
+            owner, repo = updater.parse_github_url(github_url)
+            if owner and repo:
+                updater.remove_repository(owner, repo)
+            else:
+                print(f"无效的GitHub仓库URL: {github_url}")
+                print("格式应为: https://github.com/owner/repo")
+        
+        elif command == "update":
+            updater.update_all()
+        
+        elif command == "proxy" and len(sys.argv) > 2:
+            proxy_prefix = sys.argv[2]
+            updater.set_proxy_prefix(proxy_prefix)
+        
+        elif command == "list":
+            print("已配置的仓库:")
+            for repo_info in updater.config["repositories"]:
+                print(f"  {repo_info['owner']}/{repo_info['repo']}")
+        
+        elif command == "help":
+            print_usage()
+        
+        else:
+            print("无效的命令或参数不足")
+            print_usage()
+    else:
+        print_usage()
+    
     # 示例：添加仓库
-    updater.add_repository("SleepingBag945", "dddd")
+    # updater.add_repository("SleepingBag945", "dddd")
     
     # 示例：设置代理前缀（如果在中国大陆访问GitHub较慢，可以使用代理）
-    updater.set_proxy_prefix("https://g.bravexist.cn/")
+    # updater.set_proxy_prefix("https://g.bravexist.cn/")
     
     # 示例：设置下载目录和保留版本数量
-    updater.config["base_dir"] = "downloads"
-    updater.config["max_versions"] = 5
-    updater._save_config()
+    # updater.config["base_dir"] = "downloads"
+    # updater.config["max_versions"] = 5
+    # updater._save_config()
     
     # 更新所有仓库
-    updater.update_all()
+    # updater.update_all()
     
     # 完整使用示例
     """
