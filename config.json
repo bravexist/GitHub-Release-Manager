@@ -1,0 +1,11 @@
+{
+    "repositories": [
+        {
+            "owner": "SleepingBag945",
+            "repo": "dddd"
+        }
+    ],
+    "base_dir": "downloads",
+    "max_versions": 5,
+    "proxy_prefix": "https://g.bravexist.cn/"
+}
