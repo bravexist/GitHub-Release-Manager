@@ -15,8 +15,8 @@
 
 1. 克隆仓库：
 ```bash
-git clone https://github.com/yourusername/github-release-manager.git
-cd github-release-manager
+git clone https://github.com/bravexist/GitHub-Release-Manager.git
+cd GitHub-Release-Manager
 ```
 
 2. 安装依赖：
