@@ -8,6 +8,9 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 import sys
 import re
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+from urllib.parse import urlparse
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -21,6 +24,19 @@ class GithubReleaseUpdater:
         self.base_dir = Path(self.config.get("base_dir", "downloads"))
         self.max_versions = self.config.get("max_versions", 3)
         self.proxy_prefix = self.config.get("proxy_prefix", "")
+        self.max_retries = 3  # 最大重试次数
+        self.retry_delay = 5  # 重试延迟（秒）
+        
+        # 配置 requests 会话
+        self.session = requests.Session()
+        retry_strategy = Retry(
+            total=self.max_retries,
+            backoff_factor=1,
+            status_forcelist=[500, 502, 503, 504],
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
         
     def _load_config(self):
         """加载配置文件"""
@@ -76,7 +92,7 @@ class GithubReleaseUpdater:
         """获取仓库的发布版本信息"""
         url = f"https://api.github.com/repos/{owner}/{repo}/releases"
         try:
-            response = requests.get(url)
+            response = self.session.get(url)
             response.raise_for_status()
             return response.json()
         except requests.RequestException as e:
@@ -85,23 +101,42 @@ class GithubReleaseUpdater:
     
     def download_asset(self, url, save_path):
         """下载资源文件"""
-        download_url = f"{self.proxy_prefix}{url}" if self.proxy_prefix else url
-        try:
-            response = requests.get(download_url, stream=True)
-            response.raise_for_status()
+        # 处理代理前缀
+        if self.proxy_prefix:
+            parsed_url = urlparse(url)
+            if parsed_url.netloc == "api.github.com":
+                # 对于 GitHub API 的请求，不使用代理
+                download_url = url
+            else:
+                # 对于其他下载链接，使用代理
+                download_url = f"{self.proxy_prefix}{url}"
+        else:
+            download_url = url
             
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            
-            with open(save_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
-            
-            logger.info(f"下载完成: {save_path}")
-            return True
-        except requests.RequestException as e:
-            logger.error(f"下载失败 {url}: {e}")
-            return False
+        retry_count = 0
+        
+        while retry_count < self.max_retries:
+            try:
+                response = self.session.get(download_url, stream=True)
+                response.raise_for_status()
+                
+                os.makedirs(os.path.dirname(save_path), exist_ok=True)
+                
+                with open(save_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                
+                logger.info(f"下载完成: {save_path}")
+                return True
+            except requests.RequestException as e:
+                retry_count += 1
+                if retry_count < self.max_retries:
+                    logger.warning(f"下载失败，{retry_count}/{self.max_retries} 次重试: {url}")
+                    time.sleep(self.retry_delay)
+                else:
+                    logger.error(f"下载失败 {url}: {e}")
+                    return False
     
     def process_release(self, owner, repo, release):
         """处理单个发布版本"""
@@ -118,6 +153,8 @@ class GithubReleaseUpdater:
         # 使用多线程下载所有资源
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = []
+            
+            # 下载发布资源
             for asset in release["assets"]:
                 asset_path = release_dir / asset["name"]
                 futures.append(executor.submit(
@@ -126,9 +163,43 @@ class GithubReleaseUpdater:
                     asset_path
                 ))
             
+            # 下载源代码包
+            if "zipball_url" in release:
+                zip_path = release_dir / f"{repo}-{version}-source.zip"
+                futures.append(executor.submit(
+                    self.download_asset,
+                    release["zipball_url"],
+                    zip_path
+                ))
+            
+            if "tarball_url" in release:
+                tar_path = release_dir / f"{repo}-{version}-source.tar.gz"
+                futures.append(executor.submit(
+                    self.download_asset,
+                    release["tarball_url"],
+                    tar_path
+                ))
+            
             # 等待所有下载完成
             for future in futures:
                 future.result()
+    
+    def get_directory_size(self, path):
+        """计算目录大小"""
+        total_size = 0
+        for dirpath, dirnames, filenames in os.walk(path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                total_size += os.path.getsize(fp)
+        return total_size
+    
+    def format_size(self, size):
+        """格式化文件大小"""
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024:
+                return f"{size:.2f} {unit}"
+            size /= 1024
+        return f"{size:.2f} TB"
     
     def update_repository(self, owner, repo):
         """更新单个仓库的发布版本"""
@@ -191,6 +262,27 @@ class GithubReleaseUpdater:
         if match:
             return match.group(1), match.group(2)
         return None, None
+    
+    def list_repositories(self):
+        """列出所有仓库及其版本信息"""
+        print("\n已配置的仓库:")
+        print("-" * 80)
+        for repo_info in self.config["repositories"]:
+            owner = repo_info["owner"]
+            repo = repo_info["repo"]
+            repo_dir = self.base_dir / owner / repo
+            
+            if repo_dir.exists():
+                versions = [d.name for d in repo_dir.iterdir() if d.is_dir()]
+                total_size = self.get_directory_size(repo_dir)
+                print(f"仓库: {owner}/{repo}")
+                print(f"  版本数量: {len(versions)}")
+                print(f"  总大小: {self.format_size(total_size)}")
+                print(f"  版本列表: {', '.join(versions)}")
+            else:
+                print(f"仓库: {owner}/{repo}")
+                print("  尚未下载任何版本")
+            print("-" * 80)
 
 def print_usage():
     """打印使用说明"""
@@ -238,9 +330,7 @@ if __name__ == "__main__":
             updater.set_proxy_prefix(proxy_prefix)
         
         elif command == "list":
-            print("已配置的仓库:")
-            for repo_info in updater.config["repositories"]:
-                print(f"  {repo_info['owner']}/{repo_info['repo']}")
+            updater.list_repositories()
         
         elif command == "help":
             print_usage()

@@ -15,9 +15,13 @@
         {
             "owner": "XTLS",
             "repo": "Xray-core"
+        },
+        {
+            "owner": "yaklang",
+            "repo": "yakit"
         }
     ],
     "base_dir": "downloads",
-    "max_versions": 5,
+    "max_versions": 1,
     "proxy_prefix": "https://g.bravexist.cn/"
 }
