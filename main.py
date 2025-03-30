@@ -143,34 +143,35 @@ class GithubReleaseUpdater:
         if repo_dir.exists():
             existing_versions = [d.name for d in repo_dir.iterdir() if d.is_dir()]
         
-        # 下载最新的 max_versions 个版本
-        versions_to_download = []
+        # 获取GitHub上所有版本的标签
+        all_versions = [release["tag_name"] for release in releases]
         
-        # 找出需要下载的版本
+        # 找出需要下载的新版本
+        versions_to_download = []
         for release in releases:
             version = release["tag_name"]
             if version not in existing_versions:
                 versions_to_download.append(release)
-                if len(versions_to_download) >= self.max_versions:
-                    break
         
-        # 如果没有新版本，但现有版本少于 max_versions，则下载更多版本
-        if not versions_to_download and len(existing_versions) < self.max_versions:
-            for release in releases:
-                version = release["tag_name"]
-                if version not in existing_versions:
-                    versions_to_download.append(release)
-                    if len(existing_versions) + len(versions_to_download) >= self.max_versions:
-                        break
+        # 确定要保留的版本（最新的max_versions个）
+        versions_to_keep = all_versions[:self.max_versions]
         
-        # 下载所有需要的版本
+        # 下载需要的新版本
         if versions_to_download:
-            logger.info(f"将为 {owner}/{repo} 下载 {len(versions_to_download)} 个版本")
-            with ThreadPoolExecutor(max_workers=3) as executor:
-                for release in versions_to_download:
-                    executor.submit(self.process_release, owner, repo, release)
+            # 只下载需要保留的版本中尚未下载的部分
+            versions_to_actually_download = [r for r in versions_to_download if r["tag_name"] in versions_to_keep]
+            if versions_to_actually_download:
+                logger.info(f"将为 {owner}/{repo} 下载 {len(versions_to_actually_download)} 个新版本")
+                with ThreadPoolExecutor(max_workers=3) as executor:
+                    for release in versions_to_actually_download:
+                        executor.submit(self.process_release, owner, repo, release)
+            else:
+                logger.info(f"没有新版本需要下载: {owner}/{repo}")
         else:
             logger.info(f"没有新版本需要下载: {owner}/{repo}")
+        
+        # 不删除已存在的旧版本，确保有最新的max_versions个版本即可
+        logger.info(f"保留 {owner}/{repo} 的所有已下载版本")
     
     def update_all(self):
         """更新所有配置的仓库"""
