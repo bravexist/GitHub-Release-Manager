@@ -3,6 +3,10 @@
         {
             "owner": "SleepingBag945",
             "repo": "dddd"
+        },
+		{
+            "owner": "shadow1ng",
+            "repo": "fscan"
         }
     ],
     "base_dir": "downloads",
