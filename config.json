@@ -1,24 +1,8 @@
 {
     "repositories": [
         {
-            "owner": "SleepingBag945",
-            "repo": "dddd"
-        },
-        {
-            "owner": "shadow1ng",
-            "repo": "fscan"
-        },
-        {
             "owner": "sqlmapproject",
             "repo": "sqlmap"
-        },
-        {
-            "owner": "XTLS",
-            "repo": "Xray-core"
-        },
-        {
-            "owner": "yaklang",
-            "repo": "yakit"
         }
     ],
     "base_dir": "downloads",
