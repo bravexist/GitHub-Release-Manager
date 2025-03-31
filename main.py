@@ -284,6 +284,11 @@ class GithubReleaseUpdater:
                 print(f"  版本数量: {len(versions)}")
                 print(f"  总大小: {self.format_size(total_size)}")
                 print(f"  版本列表: {', '.join(versions)}")
+                if versions:
+                    latest_version = versions[0]  # 假设版本按时间倒序排列
+                    latest_path = repo_dir / latest_version
+                    if latest_path.exists():
+                        print(f"  最新版本: {latest_version} -> {latest_path}")
             else:
                 print(f"仓库: {owner}/{repo}")
                 print("  尚未下载任何版本")
