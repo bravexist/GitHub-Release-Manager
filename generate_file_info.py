@@ -2,6 +2,7 @@ import os
 import hashlib
 from datetime import datetime
 from pathlib import Path
+import argparse
 
 def format_size(size):
     """格式化文件大小"""
@@ -66,13 +67,28 @@ def generate_file_info(directory):
     
     print(f"已生成文件信息记录: {info_file}")
 
+def process_directory(directory, recursive=False):
+    """处理目录，可选择是否递归处理子目录"""
+    directory = Path(directory)
+    if not directory.exists():
+        print(f"目录不存在: {directory}")
+        return
+    
+    # 处理当前目录
+    print(f"\n处理目录: {directory}")
+    generate_file_info(directory)
+    
+    # 如果启用递归，处理所有子目录
+    if recursive:
+        for item in directory.iterdir():
+            if item.is_dir():
+                process_directory(item, recursive=True)
+
 if __name__ == "__main__":
-    import sys
+    parser = argparse.ArgumentParser(description='生成文件信息记录工具')
+    parser.add_argument('directory', help='要处理的目录路径')
+    parser.add_argument('-r', '--recursive', action='store_true', help='递归处理所有子目录')
     
-    if len(sys.argv) != 2:
-        print("使用方法: python generate_file_info.py <目录路径>")
-        print("示例: python generate_file_info.py ./downloads/sqlmapproject/sqlmap/1.9")
-        sys.exit(1)
+    args = parser.parse_args()
     
-    directory = sys.argv[1]
-    generate_file_info(directory) 
+    process_directory(args.directory, args.recursive) 
