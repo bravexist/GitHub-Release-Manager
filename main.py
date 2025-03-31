@@ -140,15 +140,20 @@ class GithubReleaseUpdater:
                     logger.error(f"下载失败 {url}: {e}")
                     return False
     
-    def process_release(self, owner, repo, release):
+    def process_release(self, owner, repo, release, force=False):
         """处理单个发布版本"""
         version = release["tag_name"]
         release_dir = self.base_dir / owner / repo / version
         
-        # 检查是否已下载
-        if release_dir.exists():
+        # 检查是否已下载，如果已存在且不是强制更新，则跳过
+        if release_dir.exists() and not force:
             logger.info(f"版本已存在: {owner}/{repo}/{version}")
             return
+        
+        # 如果是强制更新且目录已存在，先删除旧目录
+        if force and release_dir.exists():
+            logger.info(f"强制更新: 删除旧版本 {owner}/{repo}/{version}")
+            shutil.rmtree(release_dir)
         
         os.makedirs(release_dir, exist_ok=True)
         
@@ -206,7 +211,7 @@ class GithubReleaseUpdater:
             size /= 1024
         return f"{size:.2f} TB"
     
-    def update_repository(self, owner, repo):
+    def update_repository(self, owner, repo, force=False):
         """更新单个仓库的发布版本"""
         logger.info(f"正在检查 {owner}/{repo} 的更新...")
         releases = self.get_releases(owner, repo)
@@ -228,7 +233,7 @@ class GithubReleaseUpdater:
         versions_to_download = []
         for release in releases:
             version = release["tag_name"]
-            if version not in existing_versions:
+            if force or version not in existing_versions:
                 versions_to_download.append(release)
         
         # 确定要保留的版本（最新的max_versions个）
@@ -242,7 +247,7 @@ class GithubReleaseUpdater:
                 logger.info(f"将为 {owner}/{repo} 下载 {len(versions_to_actually_download)} 个新版本")
                 with ThreadPoolExecutor(max_workers=3) as executor:
                     for release in versions_to_actually_download:
-                        executor.submit(self.process_release, owner, repo, release)
+                        executor.submit(self.process_release, owner, repo, release, force)
             else:
                 logger.info(f"没有新版本需要下载: {owner}/{repo}")
         else:
@@ -251,13 +256,22 @@ class GithubReleaseUpdater:
         # 不删除已存在的旧版本，确保有最新的max_versions个版本即可
         logger.info(f"保留 {owner}/{repo} 的所有已下载版本")
     
-    def update_all(self):
+    def update_all(self, force_repo_index=None):
         """更新所有配置的仓库"""
-        with ThreadPoolExecutor(max_workers=5) as executor:
-            for repo_info in self.config["repositories"]:
-                owner = repo_info["owner"]
-                repo = repo_info["repo"]
-                executor.submit(self.update_repository, owner, repo)
+        if force_repo_index is not None:
+            # 强制更新指定序号的仓库
+            if 1 <= force_repo_index <= len(self.config["repositories"]):
+                repo_info = self.config["repositories"][force_repo_index - 1]
+                self.update_repository(repo_info["owner"], repo_info["repo"], force=True)
+            else:
+                logger.error(f"无效的仓库序号: {force_repo_index}")
+        else:
+            # 正常更新所有仓库
+            with ThreadPoolExecutor(max_workers=5) as executor:
+                for repo_info in self.config["repositories"]:
+                    owner = repo_info["owner"]
+                    repo = repo_info["repo"]
+                    executor.submit(self.update_repository, owner, repo)
     
     def parse_github_url(self, url):
         """从GitHub URL中解析出所有者和仓库名"""
@@ -272,26 +286,25 @@ class GithubReleaseUpdater:
         """列出所有仓库及其版本信息"""
         print("\n已配置的仓库:")
         print("-" * 80)
-        for repo_info in self.config["repositories"]:
+        for idx, repo_info in enumerate(self.config["repositories"], 1):
             owner = repo_info["owner"]
             repo = repo_info["repo"]
             repo_dir = self.base_dir / owner / repo
             
+            print(f"[{idx}] 仓库: {owner}/{repo}")
             if repo_dir.exists():
                 versions = [d.name for d in repo_dir.iterdir() if d.is_dir()]
                 total_size = self.get_directory_size(repo_dir)
-                print(f"仓库: {owner}/{repo}")
-                print(f"  版本数量: {len(versions)}")
-                print(f"  总大小: {self.format_size(total_size)}")
-                print(f"  版本列表: {', '.join(versions)}")
+                print(f"    版本数量: {len(versions)}")
+                print(f"    总大小: {self.format_size(total_size)}")
+                print(f"    版本列表: {', '.join(versions)}")
                 if versions:
                     latest_version = versions[0]  # 假设版本按时间倒序排列
                     latest_path = repo_dir / latest_version
                     if latest_path.exists():
-                        print(f"  最新版本: {latest_version} -> {latest_path}")
+                        print(f"    最新版本: {latest_version} -> {latest_path}")
             else:
-                print(f"仓库: {owner}/{repo}")
-                print("  尚未下载任何版本")
+                print("    尚未下载任何版本")
             print("-" * 80)
 
     def calculate_file_hashes(self, file_path):
@@ -348,12 +361,14 @@ def print_usage():
     print("  python main.py add <GitHub仓库URL>    - 添加GitHub仓库")
     print("  python main.py remove <GitHub仓库URL> - 移除GitHub仓库")
     print("  python main.py update                 - 更新所有仓库")
+    print("  python main.py update -f <序号>        - 强制更新指定序号的仓库")
     print("  python main.py proxy <代理前缀>        - 设置代理前缀")
     print("  python main.py list                   - 列出所有仓库")
     print("  python main.py help                   - 显示帮助信息")
     print("\n示例:")
     print("  python main.py add https://github.com/sqlmapproject/sqlmap")
     print("  python main.py proxy https://g.bravexist.cn/")
+    print("  python main.py update -f 1            - 强制更新第一个仓库")
 
 if __name__ == "__main__":
     updater = GithubReleaseUpdater()
@@ -381,7 +396,14 @@ if __name__ == "__main__":
                 print("格式应为: https://github.com/owner/repo")
         
         elif command == "update":
-            updater.update_all()
+            force_repo_index = None
+            if len(sys.argv) > 2 and sys.argv[2] == "-f" and len(sys.argv) > 3:
+                try:
+                    force_repo_index = int(sys.argv[3])
+                except ValueError:
+                    print("仓库序号必须是数字")
+                    sys.exit(1)
+            updater.update_all(force_repo_index)
         
         elif command == "proxy" and len(sys.argv) > 2:
             proxy_prefix = sys.argv[2]
