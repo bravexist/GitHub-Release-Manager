@@ -14,6 +14,25 @@ from urllib.parse import urlparse
 import hashlib
 from datetime import datetime
 
+def print_banner():
+    banner = """
+    ╔════════════════════════════════════════════════════════════════════════════╗
+    ║                                                                           ║
+    ║   ██████╗ ██╗████████╗██╗   ██╗██████╗ ███████╗██╗     ███████╗███████╗  ║
+    ║  ██╔════╝ ██║╚══██╔══╝██║   ██║██╔══██╗██╔════╝██║     ██╔════╝██╔════╝  ║
+    ║  ██║  ███╗██║   ██║   ██║   ██║██████╔╝█████╗  ██║     █████╗  ███████╗  ║
+    ║  ██║   ██║██║   ██║   ╚██╗ ██╔╝██╔══██╗██╔══╝  ██║     ██╔══╝  ╚════██║  ║
+    ║  ╚██████╔╝██║   ██║    ╚████╔╝ ██║  ██║███████╗███████╗███████╗███████║  ║
+    ║   ╚═════╝ ╚═╝   ╚═╝     ╚═══╝  ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚══════╝  ║
+    ║                                                                           ║
+    ║  GitHub Release Manager - 强大的 GitHub Release 管理工具                 ║
+    ║  Version: 0.0.7                                                          ║
+    ║  Author: bravexist                                                       ║
+    ║                                                                           ║
+    ╚════════════════════════════════════════════════════════════════════════════╝
+    """
+    print(banner)
+
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -370,84 +389,52 @@ def print_usage():
     print("  python main.py proxy https://g.bravexist.cn/")
     print("  python main.py update -f 1            - 强制更新第一个仓库")
 
-if __name__ == "__main__":
-    updater = GithubReleaseUpdater()
-    
-    # 命令行参数处理
-    if len(sys.argv) > 1:
-        command = sys.argv[1].lower()
-        
-        if command == "add" and len(sys.argv) > 2:
-            github_url = sys.argv[2]
-            owner, repo = updater.parse_github_url(github_url)
-            if owner and repo:
-                updater.add_repository(owner, repo)
-            else:
-                print(f"无效的GitHub仓库URL: {github_url}")
-                print("格式应为: https://github.com/owner/repo")
-        
-        elif command == "remove" and len(sys.argv) > 2:
-            github_url = sys.argv[2]
-            owner, repo = updater.parse_github_url(github_url)
-            if owner and repo:
-                updater.remove_repository(owner, repo)
-            else:
-                print(f"无效的GitHub仓库URL: {github_url}")
-                print("格式应为: https://github.com/owner/repo")
-        
-        elif command == "update":
-            force_repo_index = None
-            if len(sys.argv) > 2 and sys.argv[2] == "-f" and len(sys.argv) > 3:
-                try:
-                    force_repo_index = int(sys.argv[3])
-                except ValueError:
-                    print("仓库序号必须是数字")
-                    sys.exit(1)
-            updater.update_all(force_repo_index)
-        
-        elif command == "proxy" and len(sys.argv) > 2:
-            proxy_prefix = sys.argv[2]
-            updater.set_proxy_prefix(proxy_prefix)
-        
-        elif command == "list":
-            updater.list_repositories()
-        
-        elif command == "help":
-            print_usage()
-        
-        else:
-            print("无效的命令或参数不足")
-            print_usage()
-    else:
+def main():
+    if len(sys.argv) < 2:
+        print_banner()
         print_usage()
-    
-    # 示例：添加仓库
-    # updater.add_repository("SleepingBag945", "dddd")
-    
-    # 示例：设置代理前缀（如果在中国大陆访问GitHub较慢，可以使用代理）
-    # updater.set_proxy_prefix("https://g.bravexist.cn/")
-    
-    # 示例：设置下载目录和保留版本数量
-    # updater.config["base_dir"] = "downloads"
-    # updater.config["max_versions"] = 5
-    # updater._save_config()
-    
-    # 更新所有仓库
-    # updater.update_all()
-    
-    # 完整使用示例
-    """
-    # 初始化更新器
+        return
+
     updater = GithubReleaseUpdater()
-    
-    # 添加要监控的仓库
-    updater.add_repository("SleepingBag945", "dddd")
-    
-    # 设置代理前缀（可选）
-    updater.set_proxy_prefix("https://g.bravexist.cn/")
-    
-    # 更新所有仓库
-    updater.update_all()
-    
-    # 下载的文件将保存在 downloads/SleepingBag945/dddd/[版本号] 目录下
-    """
+    command = sys.argv[1]
+
+    if command == "add":
+        if len(sys.argv) != 3:
+            print("错误：请提供 GitHub 仓库 URL")
+            return
+        owner, repo = updater.parse_github_url(sys.argv[2])
+        updater.add_repository(owner, repo)
+    elif command == "remove":
+        if len(sys.argv) != 3:
+            print("错误：请提供 GitHub 仓库 URL")
+            return
+        owner, repo = updater.parse_github_url(sys.argv[2])
+        updater.remove_repository(owner, repo)
+    elif command == "update":
+        force_repo_index = None
+        if len(sys.argv) > 2 and sys.argv[2] == "-f":
+            if len(sys.argv) != 4:
+                print("错误：请提供要强制更新的仓库序号")
+                return
+            try:
+                force_repo_index = int(sys.argv[3])
+            except ValueError:
+                print("错误：仓库序号必须是数字")
+                return
+        updater.update_all(force_repo_index)
+    elif command == "proxy":
+        if len(sys.argv) != 3:
+            print("错误：请提供代理前缀")
+            return
+        updater.set_proxy_prefix(sys.argv[2])
+    elif command == "list":
+        updater.list_repositories()
+    elif command == "help":
+        print_banner()
+        print_usage()
+    else:
+        print("错误：未知命令")
+        print_usage()
+
+if __name__ == "__main__":
+    main()

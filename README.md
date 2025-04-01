@@ -2,6 +2,8 @@
 
 一个强大的 GitHub Release 管理工具，可以自动下载和管理多个 GitHub 仓库的发布版本。
 
+> 本项目使用 [Cursor](https://cursor.sh) 开发，并由 [Claude 3.5 Sonnet](https://www.anthropic.com/index/claude-3-sonnet-20240229) 提供智能编程支持。
+
 ## 功能特性
 
 - 支持多仓库管理：可以同时管理多个 GitHub 仓库的发布版本
