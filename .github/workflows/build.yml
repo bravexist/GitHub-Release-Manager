@@ -40,7 +40,8 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}-artifact
-        path: dist/*
+        path: dist/${{ matrix.artifact_name }}
+        retention-days: 1
 
   release:
     needs: build
@@ -52,12 +53,14 @@ jobs:
       uses: actions/download-artifact@v3
       with:
         path: dist
+        pattern: *-artifact
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          dist/**/*
+          dist/windows-latest-artifact/GitHub-Release-Manager.exe
+          dist/ubuntu-latest-artifact/GitHub-Release-Manager
         draft: false
         prerelease: false
       env:
