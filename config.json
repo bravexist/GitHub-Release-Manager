@@ -1,11 +1,27 @@
 {
     "repositories": [
         {
+            "owner": "bravexist",
+            "repo": "GitHub-Release-Manager",
+            "max_versions": 10
+        },
+        {
+            "owner": "H4ckForJob",
+            "repo": "dirmap",
+            "max_versions": 3
+        },
+        {
             "owner": "sqlmapproject",
-            "repo": "sqlmap"
+            "repo": "sqlmap",
+            "max_versions": 1
+        },
+        {
+            "owner": "SleepingBag945",
+            "repo": "dddd",
+            "max_versions": 2
         }
     ],
-    "base_dir": "downloads",
-    "max_versions": 1,
-    "proxy_prefix": "https://g.bravexist.cn/"
+    "base_dir": "../Github.com",
+    "proxy_prefix": "https://g.bravexist.cn/",
+    "default_max_versions": 2
 }

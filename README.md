@@ -4,19 +4,16 @@
 
 > 本项目使用 [Cursor](https://cursor.sh) 开发，并由 [Claude 3.5 Sonnet](https://www.anthropic.com/index/claude-3-sonnet-20240229) 提供智能编程支持。
 
-## 功能特性
-
-- 支持多仓库管理：可以同时管理多个 GitHub 仓库的发布版本
-- 自动版本控制：自动保留最新的 N 个版本（默认 3 个）
-- 多线程下载：使用多线程加速下载过程
-- 代理支持：支持配置代理前缀，方便国内用户使用
-- 增量更新：只下载新版本，避免重复下载
-- 配置持久化：使用 JSON 配置文件保存设置
-- 强制更新：支持强制重新下载指定仓库的所有版本
-- 序号管理：使用序号标识仓库，方便操作
-- 文件完整性：自动生成文件哈希值，确保下载完整性
-
 ## 安装
+
+### 方式一：下载可执行文件（推荐）
+
+1. 访问 [Releases](https://github.com/bravexist/GitHub-Release-Manager/releases) 页面
+2. 下载适合您系统的可执行文件：
+   - Windows: `GitHub-Release-Manager.exe`
+   - Linux: `GitHub-Release-Manager`
+
+### 方式二：从源码安装
 
 1. 克隆仓库：
 ```bash
@@ -31,41 +28,62 @@ pip install -r requirements.txt
 
 ## 使用方法
 
-### 基本命令
+### 使用可执行文件
 
 ```bash
-python main.py add <GitHub仓库URL>    # 添加新的 GitHub 仓库
-python main.py remove <GitHub仓库URL> # 移除已添加的仓库
-python main.py update                  # 更新所有仓库的发布版本
-python main.py update -f <序号>         # 强制更新指定序号的仓库
-python main.py proxy <代理前缀>         # 设置下载代理
-python main.py list                    # 列出所有已配置的仓库
-python main.py help                    # 显示帮助信息
+# Windows
+GitHub-Release-Manager.exe add <GitHub仓库URL>    # 添加GitHub仓库
+GitHub-Release-Manager.exe remove <GitHub仓库URL>  # 移除GitHub仓库
+GitHub-Release-Manager.exe update                  # 更新所有仓库
+GitHub-Release-Manager.exe update -f <序号>        # 强制更新指定序号的仓库
+GitHub-Release-Manager.exe proxy <代理前缀>        # 设置代理前缀
+GitHub-Release-Manager.exe list                    # 列出所有仓库
+GitHub-Release-Manager.exe help                    # 显示帮助信息
+
+# Linux
+./GitHub-Release-Manager add <GitHub仓库URL>      # 添加GitHub仓库
+./GitHub-Release-Manager remove <GitHub仓库URL>   # 移除GitHub仓库
+./GitHub-Release-Manager update                   # 更新所有仓库
+./GitHub-Release-Manager update -f <序号>         # 强制更新指定序号的仓库
+./GitHub-Release-Manager proxy <代理前缀>         # 设置代理前缀
+./GitHub-Release-Manager list                     # 列出所有仓库
+./GitHub-Release-Manager help                     # 显示帮助信息
 ```
 
-### 示例
+### 从源码运行
 
 ```bash
-# 添加仓库
-python main.py add https://github.com/sqlmapproject/sqlmap
-
-# 设置代理（如果需要）
-python main.py proxy https://g.bravexist.cn/
-
-# 更新所有仓库
-python main.py update
-
-# 强制更新第一个仓库
-python main.py update -f 1
+python main.py add <GitHub仓库URL>    # 添加GitHub仓库
+python main.py remove <GitHub仓库URL> # 移除GitHub仓库
+python main.py update                 # 更新所有仓库
+python main.py update -f <序号>        # 强制更新指定序号的仓库
+python main.py proxy <代理前缀>        # 设置代理前缀
+python main.py list                   # 列出所有仓库
+python main.py help                   # 显示帮助信息
 ```
+
+## 功能特性
+
+- 支持多仓库管理：可以同时管理多个 GitHub 仓库的发布版本
+- 自定义版本控制：每个仓库可以单独设置保留的最新版本数量
+- 多线程下载：使用多线程加速下载过程
+- 代理支持：支持配置代理前缀，方便国内用户使用
+- 增量更新：只下载新版本，避免重复下载
+- 配置持久化：使用 JSON 配置文件保存设置
+- 强制更新：支持强制重新下载指定仓库的所有版本
+- 序号管理：使用序号标识仓库，方便操作
+- 文件完整性：自动生成文件哈希值，确保下载完整性
 
 ## 配置说明
 
 配置文件 `config.json` 包含以下设置：
 
-- `repositories`: 要管理的仓库列表
+- `repositories`: 要管理的仓库列表，每个仓库可以设置：
+  - `owner`: 仓库所有者
+  - `repo`: 仓库名称
+  - `max_versions`: 该仓库保留的最新版本数量（如果不设置，将使用default_max_versions的值）
 - `base_dir`: 下载文件的基础目录（默认为 "downloads"）
-- `max_versions`: 每个仓库保留的最新版本数量（默认为 3）
+- `default_max_versions`: 默认的版本保留数量（默认为1）
 - `proxy_prefix`: 下载时使用的代理前缀
 
 ## 下载目录结构
@@ -103,4 +121,8 @@ downloads/
 
 ## 许可证
 
-MIT License
+本项目采用 MIT 许可证。详见 [LICENSE](LICENSE) 文件。
+
+## 作者
+
+- bravexist

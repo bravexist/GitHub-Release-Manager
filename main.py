@@ -43,7 +43,7 @@ class GithubReleaseUpdater:
         self.config_path = config_path
         self.config = self._load_config()
         self.base_dir = Path(self.config.get("base_dir", "downloads"))
-        self.max_versions = self.config.get("max_versions", 3)
+        self.default_max_versions = self.config.get("default_max_versions", 1)
         self.proxy_prefix = self.config.get("proxy_prefix", "")
         self.max_retries = 3  # 最大重试次数
         self.retry_delay = 5  # 重试延迟（秒）
@@ -59,17 +59,47 @@ class GithubReleaseUpdater:
         self.session.mount("http://", adapter)
         self.session.mount("https://", adapter)
         
+        # 规范化配置文件
+        self.normalize_config()
+        
+    def normalize_config(self):
+        """规范化配置文件格式，确保所有必要的字段都存在"""
+        # 兼容旧的max_versions参数
+        if "max_versions" in self.config and "default_max_versions" not in self.config:
+            self.config["default_max_versions"] = self.config.pop("max_versions")
+        
+        # 确保每个仓库都有max_versions字段
+        default_versions = self.config.get("default_max_versions", 1)
+        for repo in self.config.get("repositories", []):
+            if "max_versions" not in repo:
+                repo["max_versions"] = default_versions
+        
+        # 保存规范化后的配置
+        self._save_config()
+    
     def _load_config(self):
         """加载配置文件"""
         try:
             with open(self.config_path, 'r', encoding='utf-8') as f:
-                return json.load(f)
+                config = json.load(f)
+                
+                # 兼容旧的max_versions参数
+                if "max_versions" in config and "default_max_versions" not in config:
+                    config["default_max_versions"] = config.pop("max_versions")
+                
+                # 确保每个仓库都有max_versions字段
+                default_versions = config.get("default_max_versions", 1)
+                for repo in config.get("repositories", []):
+                    if "max_versions" not in repo:
+                        repo["max_versions"] = default_versions
+                
+                return config
         except FileNotFoundError:
             # 如果配置文件不存在，创建默认配置
             default_config = {
                 "repositories": [],
                 "base_dir": "downloads",
-                "max_versions": 3,
+                "default_max_versions": 1,
                 "proxy_prefix": ""
             }
             self._save_config(default_config)
@@ -84,11 +114,15 @@ class GithubReleaseUpdater:
     
     def add_repository(self, owner, repo):
         """添加新的仓库到配置"""
-        repo_info = {"owner": owner, "repo": repo}
-        if repo_info not in self.config["repositories"]:
+        repo_info = {
+            "owner": owner,
+            "repo": repo,
+            "max_versions": self.default_max_versions  # 使用默认的版本数量限制
+        }
+        if not any(r["owner"] == owner and r["repo"] == repo for r in self.config["repositories"]):
             self.config["repositories"].append(repo_info)
             self._save_config()
-            logger.info(f"已添加仓库: {owner}/{repo}")
+            logger.info(f"已添加仓库: {owner}/{repo} (保留版本数: {self.default_max_versions})")
         else:
             logger.info(f"仓库已存在: {owner}/{repo}")
     
@@ -255,8 +289,12 @@ class GithubReleaseUpdater:
             if force or version not in existing_versions:
                 versions_to_download.append(release)
         
+        # 获取该仓库的版本数量限制
+        repo_config = next((r for r in self.config["repositories"] if r["owner"] == owner and r["repo"] == repo), None)
+        max_versions = repo_config.get("max_versions", self.default_max_versions) if repo_config else self.default_max_versions
+        
         # 确定要保留的版本（最新的max_versions个）
-        versions_to_keep = all_versions[:self.max_versions]
+        versions_to_keep = all_versions[:max_versions]
         
         # 下载需要的新版本
         if versions_to_download:
@@ -277,6 +315,9 @@ class GithubReleaseUpdater:
     
     def update_all(self, force_repo_index=None):
         """更新所有配置的仓库"""
+        # 确保配置文件是最新的格式
+        self.normalize_config()
+        
         if force_repo_index is not None:
             # 强制更新指定序号的仓库
             if 1 <= force_repo_index <= len(self.config["repositories"]):
