@@ -20,28 +20,28 @@ jobs:
             artifact_name: 'GitHub-Release-Manager'
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-    
-    - name: Build executable
-      run: |
-        pyinstaller --onefile --name GitHub-Release-Manager main.py
-    
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ matrix.os }}-artifact
-        path: dist/${{ matrix.artifact_name }}
-        retention-days: 1
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Build executable
+        run: |
+          pyinstaller --onefile --name GitHub-Release-Manager main.py
+      
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.os }}-artifact
+          path: dist/${{ matrix.artifact_name }}
+          retention-days: 1
 
   release:
     needs: build
@@ -49,19 +49,19 @@ jobs:
     permissions:
       contents: write
     steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v3
-      with:
-        path: dist
-        pattern: *-artifact
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: dist
+          pattern: *-artifact
 
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          dist/windows-latest-artifact/GitHub-Release-Manager.exe
-          dist/ubuntu-latest-artifact/GitHub-Release-Manager
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            dist/windows-latest-artifact/GitHub-Release-Manager.exe
+            dist/ubuntu-latest-artifact/GitHub-Release-Manager
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
