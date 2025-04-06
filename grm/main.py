@@ -26,7 +26,7 @@ def print_banner():
     ║   ╚═════╝ ╚═╝   ╚═╝     ╚═══╝  ╚═╝  ╚═╝╚══════╝╚══════╝╚══════╝╚══════╝  ║
     ║                                                                           ║
     ║  GitHub Release Manager - 强大的 GitHub Release 管理工具                 ║
-    ║  Version: 0.0.11                                                         ║
+    ║  Version: 0.0.7                                                          ║
     ║  Author: bravexist                                                       ║
     ║                                                                           ║
     ╚════════════════════════════════════════════════════════════════════════════╝
@@ -42,9 +42,8 @@ class GithubReleaseUpdater:
         """初始化 GitHub Release 更新器"""
         self.config_path = config_path
         self.config = self._load_config()
-        self.upgrade_config()  # 升级配置文件格式
         self.base_dir = Path(self.config.get("base_dir", "downloads"))
-        self.default_max_versions = self.config.get("default_max_versions", 3)  # 默认版本数量
+        self.max_versions = self.config.get("max_versions", 3)
         self.proxy_prefix = self.config.get("proxy_prefix", "")
         self.max_retries = 3  # 最大重试次数
         self.retry_delay = 5  # 重试延迟（秒）
@@ -70,7 +69,7 @@ class GithubReleaseUpdater:
             default_config = {
                 "repositories": [],
                 "base_dir": "downloads",
-                "default_max_versions": 3,
+                "max_versions": 3,
                 "proxy_prefix": ""
             }
             self._save_config(default_config)
@@ -83,52 +82,15 @@ class GithubReleaseUpdater:
         with open(self.config_path, 'w', encoding='utf-8') as f:
             json.dump(config, f, indent=4, ensure_ascii=False)
     
-    def upgrade_config(self):
-        """升级配置文件格式"""
-        changed = False
-        
-        # 将旧的max_versions键更新为default_max_versions
-        if "max_versions" in self.config and "default_max_versions" not in self.config:
-            self.config["default_max_versions"] = self.config.pop("max_versions")
-            changed = True
-            
-        # 确保每个仓库配置都有max_versions字段
-        for repo in self.config["repositories"]:
-            if "max_versions" not in repo:
-                repo["max_versions"] = self.config.get("default_max_versions", 3)
-                changed = True
-        
-        # 如果配置有更改，保存新格式
-        if changed:
-            self._save_config()
-            logger.info("配置文件已升级到新格式")
-            
-    def add_repository(self, owner, repo, max_versions=None):
+    def add_repository(self, owner, repo):
         """添加新的仓库到配置"""
-        if max_versions is None:
-            max_versions = self.default_max_versions
-            
-        repo_info = {
-            "owner": owner, 
-            "repo": repo,
-            "max_versions": max_versions
-        }
-        
-        existing_repos = [r for r in self.config["repositories"] 
-                          if r["owner"] == owner and r["repo"] == repo]
-        
-        if not existing_repos:
+        repo_info = {"owner": owner, "repo": repo}
+        if repo_info not in self.config["repositories"]:
             self.config["repositories"].append(repo_info)
             self._save_config()
-            logger.info(f"已添加仓库: {owner}/{repo}, 保留版本数: {max_versions}")
+            logger.info(f"已添加仓库: {owner}/{repo}")
         else:
-            # 如果仓库已存在但缺少max_versions字段，则更新它
-            if "max_versions" not in existing_repos[0]:
-                existing_repos[0]["max_versions"] = max_versions
-                self._save_config()
-                logger.info(f"已更新仓库: {owner}/{repo}, 保留版本数: {max_versions}")
-            else:
-                logger.info(f"仓库已存在: {owner}/{repo}")
+            logger.info(f"仓库已存在: {owner}/{repo}")
     
     def remove_repository(self, owner, repo):
         """从配置中移除仓库"""
@@ -293,17 +255,8 @@ class GithubReleaseUpdater:
             if force or version not in existing_versions:
                 versions_to_download.append(release)
         
-        # 获取此仓库的max_versions设置
-        repo_config = next((r for r in self.config["repositories"] 
-                           if r["owner"] == owner and r["repo"] == repo), None)
-        
-        if repo_config and "max_versions" in repo_config:
-            max_versions = repo_config["max_versions"]
-        else:
-            max_versions = self.default_max_versions
-            
         # 确定要保留的版本（最新的max_versions个）
-        versions_to_keep = all_versions[:max_versions]
+        versions_to_keep = all_versions[:self.max_versions]
         
         # 下载需要的新版本
         if versions_to_download:
@@ -319,24 +272,8 @@ class GithubReleaseUpdater:
         else:
             logger.info(f"没有新版本需要下载: {owner}/{repo}")
         
-        # 清理多余版本，只保留最新的max_versions个版本
-        if repo_dir.exists():
-            versions = sorted([d.name for d in repo_dir.iterdir() if d.is_dir()], 
-                             key=lambda x: releases.index(next((r for r in releases if r["tag_name"] == x), {"tag_name": x}))
-                             if x in all_versions else float('inf'))
-            
-            versions_to_delete = versions[max_versions:]
-            if versions_to_delete:
-                logger.info(f"清理 {owner}/{repo} 的旧版本: {', '.join(versions_to_delete)}")
-                for version in versions_to_delete:
-                    version_dir = repo_dir / version
-                    try:
-                        shutil.rmtree(version_dir)
-                        logger.info(f"已删除旧版本: {owner}/{repo}/{version}")
-                    except Exception as e:
-                        logger.error(f"删除版本 {owner}/{repo}/{version} 失败: {e}")
-            
-        logger.info(f"保留 {owner}/{repo} 的最新 {max_versions} 个版本")
+        # 不删除已存在的旧版本，确保有最新的max_versions个版本即可
+        logger.info(f"保留 {owner}/{repo} 的所有已下载版本")
     
     def update_all(self, force_repo_index=None):
         """更新所有配置的仓库"""
@@ -371,10 +308,9 @@ class GithubReleaseUpdater:
         for idx, repo_info in enumerate(self.config["repositories"], 1):
             owner = repo_info["owner"]
             repo = repo_info["repo"]
-            max_versions = repo_info.get("max_versions", self.default_max_versions)
             repo_dir = self.base_dir / owner / repo
             
-            print(f"[{idx}] 仓库: {owner}/{repo} (保留版本数: {max_versions})")
+            print(f"[{idx}] 仓库: {owner}/{repo}")
             if repo_dir.exists():
                 versions = [d.name for d in repo_dir.iterdir() if d.is_dir()]
                 total_size = self.get_directory_size(repo_dir)
@@ -438,68 +374,20 @@ class GithubReleaseUpdater:
                     f.write(f"  {hash_type}: {hash_value}\n")
                 f.write("-" * 50 + "\n")
 
-    def set_default_max_versions(self, versions):
-        """设置默认的最大版本数量"""
-        try:
-            versions = int(versions)
-            if versions < 1:
-                logger.error("版本数量必须大于等于1")
-                return False
-                
-            self.config["default_max_versions"] = versions
-            self.default_max_versions = versions
-            self._save_config()
-            logger.info(f"已设置默认版本数量: {versions}")
-            return True
-        except ValueError:
-            logger.error("版本数量必须是整数")
-            return False
-            
-    def set_repository_max_versions(self, owner, repo, versions):
-        """为指定仓库设置最大版本数量"""
-        try:
-            versions = int(versions)
-            if versions < 1:
-                logger.error("版本数量必须大于等于1")
-                return False
-                
-            # 查找仓库
-            repo_found = False
-            for repo_info in self.config["repositories"]:
-                if repo_info["owner"] == owner and repo_info["repo"] == repo:
-                    repo_info["max_versions"] = versions
-                    repo_found = True
-                    break
-            
-            if not repo_found:
-                logger.error(f"仓库不存在: {owner}/{repo}")
-                return False
-                
-            self._save_config()
-            logger.info(f"已为 {owner}/{repo} 设置版本数量: {versions}")
-            return True
-        except ValueError:
-            logger.error("版本数量必须是整数")
-            return False
-
 def print_usage():
     """打印使用说明"""
     print("使用方法:")
-    print("  python main.py add <GitHub仓库URL> [<版本数>]  - 添加GitHub仓库")
-    print("  python main.py remove <GitHub仓库URL>        - 移除GitHub仓库")
-    print("  python main.py update                        - 更新所有仓库")
-    print("  python main.py update -f <序号>               - 强制更新指定序号的仓库")
-    print("  python main.py proxy <代理前缀>               - 设置代理前缀")
-    print("  python main.py default-versions <版本数>      - 设置默认保留版本数")
-    print("  python main.py set-versions <GitHub仓库URL> <版本数> - 设置指定仓库的保留版本数")
-    print("  python main.py list                          - 列出所有仓库")
-    print("  python main.py help                          - 显示帮助信息")
+    print("  python main.py add <GitHub仓库URL>    - 添加GitHub仓库")
+    print("  python main.py remove <GitHub仓库URL> - 移除GitHub仓库")
+    print("  python main.py update                 - 更新所有仓库")
+    print("  python main.py update -f <序号>        - 强制更新指定序号的仓库")
+    print("  python main.py proxy <代理前缀>        - 设置代理前缀")
+    print("  python main.py list                   - 列出所有仓库")
+    print("  python main.py help                   - 显示帮助信息")
     print("\n示例:")
-    print("  python main.py add https://github.com/sqlmapproject/sqlmap 5  - 添加仓库并保留5个版本")
+    print("  python main.py add https://github.com/sqlmapproject/sqlmap")
     print("  python main.py proxy https://g.bravexist.cn/")
-    print("  python main.py default-versions 3            - 设置全局默认保留3个版本")
-    print("  python main.py set-versions https://github.com/sqlmapproject/sqlmap 2 - 设置该仓库保留2个版本")
-    print("  python main.py update -f 1                   - 强制更新第一个仓库")
+    print("  python main.py update -f 1            - 强制更新第一个仓库")
 
 def main():
     if len(sys.argv) < 2:
@@ -511,34 +399,16 @@ def main():
     command = sys.argv[1]
 
     if command == "add":
-        if len(sys.argv) < 3:
+        if len(sys.argv) != 3:
             print("错误：请提供 GitHub 仓库 URL")
             return
         owner, repo = updater.parse_github_url(sys.argv[2])
-        if not owner or not repo:
-            print("错误：无效的 GitHub 仓库 URL")
-            return
-        
-        max_versions = None
-        if len(sys.argv) >= 4:
-            try:
-                max_versions = int(sys.argv[3])
-                if max_versions < 1:
-                    print("错误：版本数量必须大于等于1")
-                    return
-            except ValueError:
-                print("错误：版本数量必须是整数")
-                return
-                
-        updater.add_repository(owner, repo, max_versions)
+        updater.add_repository(owner, repo)
     elif command == "remove":
         if len(sys.argv) != 3:
             print("错误：请提供 GitHub 仓库 URL")
             return
         owner, repo = updater.parse_github_url(sys.argv[2])
-        if not owner or not repo:
-            print("错误：无效的 GitHub 仓库 URL")
-            return
         updater.remove_repository(owner, repo)
     elif command == "update":
         force_repo_index = None
@@ -557,22 +427,6 @@ def main():
             print("错误：请提供代理前缀")
             return
         updater.set_proxy_prefix(sys.argv[2])
-    elif command == "default-versions":
-        if len(sys.argv) != 3:
-            print("错误：请提供默认版本数量")
-            return
-        if not updater.set_default_max_versions(sys.argv[2]):
-            print("设置默认版本数量失败")
-    elif command == "set-versions":
-        if len(sys.argv) != 4:
-            print("错误：请提供 GitHub 仓库 URL 和版本数量")
-            return
-        owner, repo = updater.parse_github_url(sys.argv[2])
-        if not owner or not repo:
-            print("错误：无效的 GitHub 仓库 URL")
-            return
-        if not updater.set_repository_max_versions(owner, repo, sys.argv[3]):
-            print("设置仓库版本数量失败")
     elif command == "list":
         updater.list_repositories()
     elif command == "help":

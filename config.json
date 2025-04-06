@@ -1,57 +1,21 @@
 {
     "repositories": [
         {
-            "owner": "sqlmapproject",
-            "repo": "sqlmap",
-            "max_versions": 1
-        },
-        {
-            "owner": "XTLS",
-            "repo": "Xray-core",
-            "max_versions": 1
-        },
-        {
             "owner": "bravexist",
             "repo": "GitHub-Release-Manager",
-            "max_versions": 1
+            "max_versions": 10
         },
         {
-            "owner": "SleepingBag945",
-            "repo": "dddd",
-            "max_versions": 1
+            "owner": "H4ckForJob",
+            "repo": "dirmap",
+            "max_versions": 3
         },
         {
-            "owner": "shadow1ng",
-            "repo": "fscan",
-            "max_versions": 1
-        },
-        {
-            "owner": "AntSwordProject",
-            "repo": "AntSword-Loader",
-            "max_versions": 1
-        },
-        {
-            "owner": "AntSwordProject",
-            "repo": "antSword",
-            "max_versions": 1
-        },
-        {
-            "owner": "shmilylty",
-            "repo": "OneForAll",
-            "max_versions": 1
-        },
-        {
-            "owner": "bravexist",
-            "repo": "JSFinder",
-            "max_versions": 1
-        },
-        {
-            "owner": "selinuxG",
-            "repo": "Golin",
-            "max_versions": 1
+            "owner": "sqlmapproject",
+            "repo": "sqlmap"
         }
     ],
-    "base_dir": "../Github.com",
-    "proxy_prefix": "https://g.bravexist.cn/",
-    "default_max_versions": 1
+    "base_dir": "downloads",
+    "max_versions": 1,
+    "proxy_prefix": "https://g.bravexist.cn/"
 }
