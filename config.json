@@ -3,9 +3,45 @@
         {
             "owner": "sqlmapproject",
             "repo": "sqlmap"
+        },
+        {
+            "owner": "XTLS",
+            "repo": "Xray-core"
+        },
+        {
+            "owner": "bravexist",
+            "repo": "GitHub-Release-Manager"
+        },
+        {
+            "owner": "SleepingBag945",
+            "repo": "dddd"
+        },
+        {
+            "owner": "shadow1ng",
+            "repo": "fscan"
+        },
+        {
+            "owner": "AntSwordProject",
+            "repo": "AntSword-Loader"
+        },
+        {
+            "owner": "AntSwordProject",
+            "repo": "antSword"
+        },
+        {
+            "owner": "shmilylty",
+            "repo": "OneForAll"
+        },
+        {
+            "owner": "bravexist",
+            "repo": "JSFinder"
+        },
+        {
+            "owner": "selinuxG",
+            "repo": "Golin"
         }
     ],
-    "base_dir": "downloads",
+    "base_dir": "../Github.com",
     "max_versions": 1,
     "proxy_prefix": "https://g.bravexist.cn/"
 }
