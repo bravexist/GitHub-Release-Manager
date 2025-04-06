@@ -34,13 +34,15 @@ pip install -r requirements.txt
 ### 基本命令
 
 ```bash
-python main.py add <GitHub仓库URL>    # 添加新的 GitHub 仓库
-python main.py remove <GitHub仓库URL> # 移除已添加的仓库
-python main.py update                  # 更新所有仓库的发布版本
-python main.py update -f <序号>         # 强制更新指定序号的仓库
-python main.py proxy <代理前缀>         # 设置下载代理
-python main.py list                    # 列出所有已配置的仓库
-python main.py help                    # 显示帮助信息
+python main.py add <GitHub仓库URL> [<版本数>]    # 添加新的 GitHub 仓库，可指定保留版本数
+python main.py remove <GitHub仓库URL>          # 移除已添加的仓库
+python main.py update                          # 更新所有仓库的发布版本
+python main.py update -f <序号>                 # 强制更新指定序号的仓库
+python main.py proxy <代理前缀>                 # 设置下载代理
+python main.py default-versions <版本数>        # 设置默认保留版本数
+python main.py set-versions <GitHub仓库URL> <版本数> # 设置指定仓库的保留版本数
+python main.py list                            # 列出所有已配置的仓库
+python main.py help                            # 显示帮助信息
 ```
 
 ### 示例
@@ -48,6 +50,9 @@ python main.py help                    # 显示帮助信息
 ```bash
 # 添加仓库
 python main.py add https://github.com/sqlmapproject/sqlmap
+
+# 添加仓库并指定保留5个版本
+python main.py add https://github.com/sqlmapproject/sqlmap 5
 
 # 设置代理（如果需要）
 python main.py proxy https://g.bravexist.cn/
@@ -57,15 +62,44 @@ python main.py update
 
 # 强制更新第一个仓库
 python main.py update -f 1
+
+# 设置默认保留3个版本
+python main.py default-versions 3
+
+# 设置特定仓库保留2个版本
+python main.py set-versions https://github.com/sqlmapproject/sqlmap 2
 ```
+
+## 开发者指南
+
+### 如何发布新版本
+
+要发布新版本并触发自动构建，请按照以下步骤操作：
+
+1. 更新代码（如更新banner中的版本号）
+2. 提交更改到仓库
+   ```bash
+   git add .
+   git commit -m "准备发布版本 vX.Y.Z"
+   ```
+3. 创建新的tag
+   ```bash
+   git tag -a vX.Y.Z -m "版本 X.Y.Z 发布"
+   ```
+4. 推送tag到GitHub
+   ```bash
+   git push origin vX.Y.Z
+   ```
+
+推送tag后，GitHub Actions会自动触发构建流程，为Windows平台生成可执行文件，并创建发布版本。
 
 ## 配置说明
 
 配置文件 `config.json` 包含以下设置：
 
-- `repositories`: 要管理的仓库列表
+- `repositories`: 要管理的仓库列表，每个仓库可以设置独立的版本数量
 - `base_dir`: 下载文件的基础目录（默认为 "downloads"）
-- `max_versions`: 每个仓库保留的最新版本数量（默认为 3）
+- `default_max_versions`: 每个仓库默认保留的最新版本数量（默认为 3）
 - `proxy_prefix`: 下载时使用的代理前缀
 
 ## 下载目录结构

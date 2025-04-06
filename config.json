@@ -2,46 +2,56 @@
     "repositories": [
         {
             "owner": "sqlmapproject",
-            "repo": "sqlmap"
+            "repo": "sqlmap",
+            "max_versions": 1
         },
         {
             "owner": "XTLS",
-            "repo": "Xray-core"
+            "repo": "Xray-core",
+            "max_versions": 1
         },
         {
             "owner": "bravexist",
-            "repo": "GitHub-Release-Manager"
+            "repo": "GitHub-Release-Manager",
+            "max_versions": 1
         },
         {
             "owner": "SleepingBag945",
-            "repo": "dddd"
+            "repo": "dddd",
+            "max_versions": 1
         },
         {
             "owner": "shadow1ng",
-            "repo": "fscan"
+            "repo": "fscan",
+            "max_versions": 1
         },
         {
             "owner": "AntSwordProject",
-            "repo": "AntSword-Loader"
+            "repo": "AntSword-Loader",
+            "max_versions": 1
         },
         {
             "owner": "AntSwordProject",
-            "repo": "antSword"
+            "repo": "antSword",
+            "max_versions": 1
         },
         {
             "owner": "shmilylty",
-            "repo": "OneForAll"
+            "repo": "OneForAll",
+            "max_versions": 1
         },
         {
             "owner": "bravexist",
-            "repo": "JSFinder"
+            "repo": "JSFinder",
+            "max_versions": 1
         },
         {
             "owner": "selinuxG",
-            "repo": "Golin"
+            "repo": "Golin",
+            "max_versions": 1
         }
     ],
     "base_dir": "../Github.com",
-    "max_versions": 1,
-    "proxy_prefix": "https://g.bravexist.cn/"
+    "proxy_prefix": "https://g.bravexist.cn/",
+    "default_max_versions": 1
 }

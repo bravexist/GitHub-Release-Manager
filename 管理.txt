@@ -1,0 +1,18 @@
+自豪的使用
+
+python main.py  add
+
+https://github.com/bravexist/GitHub-Release-Manager
+
+来管理
+
+https://github.com/bravexist/GitHub-Release-Manager
+https://github.com/bravexist/nmap
+https://github.com/sqlmapproject/sqlmap
+https://github.com/SleepingBag945/dddd
+https://github.com/shadow1ng/fscan
+https://github.com/AntSwordProject/AntSword-Loader
+https://github.com/AntSwordProject/antSword
+https://github.com/bravexist/JSFinder
+https://github.com/shmilylty/OneForAll
+https://github.com/selinuxG/Golin
