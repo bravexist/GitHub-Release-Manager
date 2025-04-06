@@ -59,6 +59,7 @@ grm-windows-amd64.exe help                            # 显示帮助信息
 #### 从源码运行
 
 ```bash
+# 使用新目录结构
 python grm/main.py add <GitHub仓库URL> [<版本数>]     # 添加新的 GitHub 仓库，可指定保留版本数
 python grm/main.py remove <GitHub仓库URL>           # 移除已添加的仓库
 python grm/main.py update                           # 更新所有仓库的发布版本
@@ -68,6 +69,17 @@ python grm/main.py default-versions <版本数>         # 设置默认保留版�
 python grm/main.py set-versions <GitHub仓库URL> <版本数> # 设置指定仓库的保留版本数
 python grm/main.py list                             # 列出所有已配置的仓库
 python grm/main.py help                             # 显示帮助信息
+
+# 使用兼容模式（推荐，支持旧版本用法）
+python main.py add <GitHub仓库URL> [<版本数>]        # 添加新的 GitHub 仓库，可指定保留版本数
+python main.py remove <GitHub仓库URL>               # 移除已添加的仓库
+python main.py update                               # 更新所有仓库的发布版本
+python main.py update -f <序号>                      # 强制更新指定序号的仓库
+python main.py proxy <代理前缀>                      # 设置下载代理
+python main.py default-versions <版本数>             # 设置默认保留版本数
+python main.py set-versions <GitHub仓库URL> <版本数>  # 设置指定仓库的保留版本数
+python main.py list                                 # 列出所有已配置的仓库
+python main.py help                                 # 显示帮助信息
 ```
 
 ### 使用示例
